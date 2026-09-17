@@ -8,7 +8,7 @@ The platform aims to create a more transparent and trusted agricultural marketpl
 
 > **Smart India Hackathon 2026**  
 > **Problem ID:** `SIH26033`  
-> **Team:** Peak Delusion
+> **Team:** Krishak
 
 ---
 
