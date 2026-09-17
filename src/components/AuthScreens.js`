@@ -1,0 +1,424 @@
+// 🌱 FarmDirect Authentication & Onboarding Views (Email & Password + Supabase Profiles Table)
+import { Icons } from '../lib/icons.js';
+import { FarmDirectApi } from '../lib/supabase.js';
+import { LanguageManager } from '../lib/translations.js';
+
+export function renderOnboarding(container, onNavigate, registrationState) {
+  const { t } = LanguageManager;
+  container.innerHTML = `
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <!-- Logo -->
+        <div class="auth-logo-center">
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <img src="/assets/logo.png" alt="FarmDirect Logo" class="brand-logo-img" style="height: 40px; width: auto;" onerror="this.style.display='none'; this.previousElementSibling?.style.display='inline-block';">
+            <span class="brand-leaf-icon" style="display:none;">${Icons.leaf}</span>
+            <div style="display:flex; flex-direction:column; text-align:left; line-height:1.15;">
+              <div class="brand-name">${t('brandName')}</div>
+              <div class="brand-tagline" style="font-size:0.7rem; color:#64748b;">${t('brandTagline')}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 1: Hero Card -->
+        <div class="onboarding-hero-image-wrap">
+          <img
+            src="https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=800&auto=format&fit=crop&q=80"
+            alt="Farmer in field"
+            class="onboarding-hero-img"
+          />
+          <div class="onboarding-hero-overlay">
+            <h2 class="onboarding-hero-title">${t('onboardingHeroTitle')}</h2>
+            <p class="onboarding-hero-desc">${t('onboardingHeroDesc')}</p>
+          </div>
+        </div>
+
+        <!-- Pagination Dots -->
+        <div class="onboarding-dots">
+          <span class="onboarding-dot active"></span>
+          <span class="onboarding-dot"></span>
+          <span class="onboarding-dot"></span>
+          <span class="onboarding-dot"></span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="onboarding-btn-row">
+          <button id="btn-goto-login" class="btn-auth-full btn-auth-primary">${t('btnGotoLogin')}</button>
+
+          <div style="margin-top:0.75rem; text-align:center;">
+            <div style="font-size:0.8rem; font-weight:700; color:#475569; margin-bottom:0.5rem;">${t('regRoleFarmer')} / ${t('regRoleBuyer')}</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.65rem;">
+              <button id="btn-onboard-farmer" class="register-role-choice-btn farmer" style="padding:0.75rem 0.85rem;">
+                <span class="register-role-icon">👨‍🌾</span>
+                <div style="text-align:left;">
+                  <div style="font-weight:700; font-size:0.85rem; color:#15803d;">${t('regRoleFarmer')}</div>
+                  <div style="font-size:0.7rem; color:#64748b;">${t('regRoleFarmerDesc')}</div>
+                </div>
+              </button>
+              <button id="btn-onboard-buyer" class="register-role-choice-btn buyer" style="padding:0.75rem 0.85rem;">
+                <span class="register-role-icon">🛒</span>
+                <div style="text-align:left;">
+                  <div style="font-weight:700; font-size:0.85rem; color:#0369a1;">${t('regRoleBuyer')}</div>
+                  <div style="font-size:0.7rem; color:#64748b;">${t('regRoleBuyerDesc')}</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.querySelector('#btn-goto-login').addEventListener('click', () => onNavigate('login'));
+
+  container.querySelector('#btn-onboard-farmer').addEventListener('click', () => {
+    registrationState.role = 'farmer';
+    onNavigate('signup');
+  });
+
+  container.querySelector('#btn-onboard-buyer').addEventListener('click', () => {
+    registrationState.role = 'buyer';
+    onNavigate('signup');
+  });
+}
+
+export function renderRoleSelection(container, onNavigate, registrationState) {
+  renderOnboarding(container, onNavigate, registrationState);
+}
+
+export function renderLogin(container, onNavigate, registrationState) {
+  const { t } = LanguageManager;
+  container.innerHTML = `
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-logo-center">
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <img src="/assets/logo.png" alt="FarmDirect Logo" class="brand-logo-img" style="height: 40px; width: auto;" onerror="this.style.display='none'; this.previousElementSibling?.style.display='inline-block';">
+            <span class="brand-leaf-icon" style="display:none;">${Icons.leaf}</span>
+            <div style="display:flex; flex-direction:column; text-align:left; line-height:1.15;">
+              <div class="brand-name">${t('brandName')}</div>
+              <div class="brand-tagline" style="font-size:0.7rem; color:#64748b;">${t('brandTagline')}</div>
+            </div>
+          </div>
+        </div>
+
+        <h2 style="font-size:1.45rem; font-weight:800; margin-bottom:0.25rem;">${t('loginTitle')}</h2>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:1.25rem;">${t('loginSubtitle')}</p>
+
+        <!-- Error Message Alert -->
+        <div id="login-error-msg" style="display:none; background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:8px; padding:0.65rem 0.85rem; font-size:0.8rem; margin-bottom:1rem; text-align:left;"></div>
+
+        <form id="login-form" class="auth-form">
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:4px; display:block;">${t('loginEmailLabel')}</label>
+            <div class="input-with-icon-wrap">
+              <span class="input-icon-left">${Icons.mail}</span>
+              <input
+                type="email"
+                id="login-email"
+                class="input-styled"
+                placeholder="name@example.com"
+                value=""
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:4px; display:block;">${t('loginPwLabel')}</label>
+            <div class="input-with-icon-wrap">
+              <span class="input-icon-left">${Icons.lock}</span>
+              <input
+                type="password"
+                id="login-password"
+                class="input-styled"
+                placeholder="Enter password"
+                value=""
+                required
+              />
+              <button type="button" id="btn-toggle-pw" class="input-toggle-eye">${Icons.eye}</button>
+            </div>
+          </div>
+
+          <div style="text-align:right; margin-top:-0.3rem;">
+            <a href="#" id="link-forgot-pw" style="font-size:0.8rem; color:#64748b;">Forgot Password?</a>
+          </div>
+
+          <button type="submit" id="btn-login-submit" class="btn-auth-full btn-auth-primary" style="margin-top:0.5rem;">
+            ${t('btnLogin')}
+          </button>
+        </form>
+
+        <div class="auth-divider">
+          <span>${t('authDivider')}</span>
+        </div>
+
+        <!-- Role Registration Quick Select -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.65rem; margin-top:0.5rem;">
+          <button id="btn-register-farmer-direct" class="register-role-choice-btn farmer">
+            <span class="register-role-icon">👨‍🌾</span>
+            <div style="text-align:left;">
+              <div style="font-weight:700; font-size:0.85rem; color:#15803d;">${t('regFarmerDirect')}</div>
+              <div style="font-size:0.7rem; color:#64748b; line-height:1.2;">Sell crop produce</div>
+            </div>
+          </button>
+
+          <button id="btn-register-buyer-direct" class="register-role-choice-btn buyer">
+            <span class="register-role-icon">🛒</span>
+            <div style="text-align:left;">
+              <div style="font-weight:700; font-size:0.85rem; color:#0369a1;">${t('regBuyerDirect')}</div>
+              <div style="font-size:0.7rem; color:#64748b; line-height:1.2;">Buy fresh at low rates</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const pwInput = container.querySelector('#login-password');
+  container.querySelector('#btn-toggle-pw').addEventListener('click', () => {
+    pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
+  });
+
+  const errorDiv = container.querySelector('#login-error-msg');
+  const submitBtn = container.querySelector('#btn-login-submit');
+
+  container.querySelector('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorDiv.style.display = 'none';
+    submitBtn.innerText = 'Logging in...';
+    submitBtn.disabled = true;
+
+    const emailVal = container.querySelector('#login-email').value.trim();
+    const pwVal = container.querySelector('#login-password').value;
+
+    const res = await FarmDirectApi.loginUser(emailVal, pwVal);
+
+    if (res.success) {
+      onNavigate('app');
+    } else {
+      submitBtn.innerText = 'Login';
+      submitBtn.disabled = false;
+      errorDiv.innerText = res.error || 'Invalid email or password. Please register below if new.';
+      errorDiv.style.display = 'block';
+    }
+  });
+
+  container.querySelector('#btn-register-farmer-direct').addEventListener('click', () => {
+    registrationState.role = 'farmer';
+    onNavigate('signup');
+  });
+
+  container.querySelector('#btn-register-buyer-direct').addEventListener('click', () => {
+    registrationState.role = 'buyer';
+    onNavigate('signup');
+  });
+
+  container.querySelector('#link-forgot-forgot-pw').addEventListener('click', (e) => {
+    e.preventDefault();
+    alert('Please sign in or register with your email address.');
+  });
+}
+
+// -----------------------------------------------------------------------------
+// SIGNUP VIEW: Full Email Registration & Direct Profiles Table Sync
+// -----------------------------------------------------------------------------
+export function renderSignup(container, onNavigate, registrationState) {
+  const { t } = LanguageManager;
+  const isFarmer = registrationState.role === 'farmer';
+
+  container.innerHTML = `
+    <div class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-logo-center">
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <img src="/assets/logo.png" alt="FarmDirect Logo" class="brand-logo-img" style="height: 40px; width: auto;" onerror="this.style.display='none'; this.previousElementSibling?.style.display='inline-block';">
+            <span class="brand-leaf-icon" style="display:none;">${Icons.leaf}</span>
+            <div style="display:flex; flex-direction:column; text-align:left; line-height:1.15;">
+              <div class="brand-name">${t('brandName')}</div>
+              <div class="brand-tagline" style="font-size:0.7rem; color:#64748b;">${t('brandTagline')}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Role Badge Header -->
+        <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:9999px; margin-bottom:0.75rem; font-size:0.75rem; font-weight:700; ${isFarmer ? 'background:#dcfce7; color:#15803d;' : 'background:#e0f2fe; color:#0369a1;'}">
+          <span>${isFarmer ? t('regRoleFarmer') + ' Account' : t('regRoleBuyer') + ' Account'}</span>
+          <button id="btn-toggle-role-signup" style="margin-left:6px; font-size:0.7rem; text-decoration:underline; cursor:pointer; color:inherit;">
+            Switch to ${isFarmer ? t('regRoleBuyer') : t('regRoleFarmer')}
+          </button>
+        </div>
+
+        <h2 style="font-size:1.4rem; font-weight:800; margin-bottom:0.25rem;">
+          ${isFarmer ? t('signupTitleFarmer') : t('signupTitleBuyer')}
+        </h2>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:1.25rem;">
+          ${isFarmer
+            ? t('signupDescFarmer')
+            : t('signupDescBuyer')}
+        </p>
+
+        <!-- Error/Status Message -->
+        <div id="signup-status-msg" style="display:none; border-radius:8px; padding:0.65rem 0.85rem; font-size:0.8rem; margin-bottom:1rem; text-align:left;"></div>
+
+        <form id="signup-form" class="auth-form">
+          <!-- Full Name -->
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:4px; display:block;">${t('signupNameLabel')}</label>
+            <div class="input-with-icon-wrap">
+              <span class="input-icon-left">${Icons.user}</span>
+              <input
+                type="text"
+                id="signup-name"
+                class="input-styled"
+                placeholder="e.g. Ramesh Kumar"
+                value="${registrationState.name || ''}"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Email Address -->
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:4px; display:block;">${t('signupEmailLabel')}</label>
+            <div class="input-with-icon-wrap">
+              <span class="input-icon-left">${Icons.mail}</span>
+              <input
+                type="email"
+                id="signup-email"
+                class="input-styled"
+                placeholder="ramesh.farmer@example.com"
+                value="${registrationState.email || ''}"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Phone Number -->
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:4px; display:block;">${t('signupPhoneLabel')}</label>
+            <div class="input-with-icon-wrap">
+              <span class="input-icon-left">${Icons.phone}</span>
+              <input
+                type="tel"
+                id="signup-phone"
+                class="input-styled"
+                placeholder="+91 98765 43210"
+                value="${registrationState.phone || '+91 98765 00000'}"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Location -->
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:4px; display:block;">
+              ${t('signupLocationLabel')}
+            </label>
+            <div class="input-with-icon-wrap">
+              <span class="input-icon-left">${Icons.mapPin}</span>
+              <input
+                type="text"
+                id="signup-location"
+                class="input-styled"
+                placeholder="e.g. Meerut, Uttar Pradesh"
+                value="Meerut, Uttar Pradesh"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Unique Password -->
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:4px; display:block;">${t('signupPwLabel')}</label>
+            <div class="input-with-icon-wrap">
+              <span class="input-icon-left">${Icons.lock}</span>
+              <input
+                type="password"
+                id="signup-password"
+                class="input-styled"
+                placeholder="Enter a secure password"
+                minlength="6"
+                value="${registrationState.password || ''}"
+                required
+              />
+              <button type="button" id="btn-toggle-pw" class="input-toggle-eye">${Icons.eye}</button>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-signup-submit" class="btn-auth-full btn-auth-primary" style="margin-top:0.75rem;">
+            ${t('btnSignup')}
+          </button>
+        </form>
+
+        <div style="margin-top:1.25rem; font-size:0.85rem; color:#64748b;">
+          ${t('linkToLogin')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const pwInput = container.querySelector('#signup-password');
+  container.querySelector('#btn-toggle-pw').addEventListener('click', () => {
+    pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
+  });
+
+  container.querySelector('#btn-toggle-role-signup').addEventListener('click', (e) => {
+    e.preventDefault();
+    registrationState.role = isFarmer ? 'buyer' : 'farmer';
+    renderSignup(container, onNavigate, registrationState);
+  });
+
+  const statusMsg = container.querySelector('#signup-status-msg');
+  const submitBtn = container.querySelector('#btn-signup-submit');
+
+  container.querySelector('#signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusMsg.style.display = 'none';
+    submitBtn.innerText = 'Registering & Saving to Database...';
+    submitBtn.disabled = true;
+
+    const name = container.querySelector('#signup-name').value.trim();
+    const email = container.querySelector('#signup-email').value.trim();
+    const phone = container.querySelector('#signup-phone').value.trim();
+    const location = container.querySelector('#signup-location').value.trim();
+    const password = pwInput.value;
+
+    const res = await FarmDirectApi.registerUser({
+      name,
+      email,
+      phone,
+      location,
+      password,
+      role: isFarmer ? 'farmer' : 'buyer',
+      avatar: isFarmer
+        ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'
+    });
+
+    if (res.success) {
+      statusMsg.style.background = '#f0fdf4';
+      statusMsg.style.color = '#15803d';
+      statusMsg.style.border = '1px solid #86efac';
+      statusMsg.innerText = '✓ Account registered and saved to Supabase! Launching dashboard...';
+      statusMsg.style.display = 'block';
+
+      setTimeout(() => {
+        onNavigate('app');
+      }, 500);
+    } else {
+      submitBtn.innerText = 'Register & Open Dashboard';
+      submitBtn.disabled = false;
+      statusMsg.style.background = '#fef2f2';
+      statusMsg.style.color = '#b91c1c';
+      statusMsg.style.border = '1px solid #fecaca';
+      statusMsg.innerText = res.error || 'Registration failed. Please check your details.';
+      statusMsg.style.display = 'block';
+    }
+  });
+
+  container.querySelector('#link-to-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    onNavigate('login');
+  });
+}
